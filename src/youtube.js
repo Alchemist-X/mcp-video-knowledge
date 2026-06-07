@@ -2,7 +2,11 @@
  * YouTube Data API v3 helpers.
  * Requires YOUTUBE_API_KEY env var for search.
  * Video metadata (title) uses oEmbed (no key needed).
+ *
+ * Thumbnail and URL building is now delegated to platform.js.
  */
+
+import { PLATFORM, buildThumbnailUrls as platformThumbs } from './platform.js';
 
 const YT_SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search';
 const YT_OEMBED_URL = 'https://www.youtube.com/oembed';
@@ -68,26 +72,13 @@ export async function getVideoTitle(videoId) {
 }
 
 /**
- * Build thumbnail URLs for a video.
- * YouTube provides several standard thumbnails — we return them all so the
- * consumer can pick the best available one. True per-frame extraction would
- * require downloading and decoding the video (future: ffmpeg integration).
+ * Build thumbnail URLs for a YouTube video.
+ * Delegates to platform.js for consistency.
  *
  * @param {string} videoId
- * @param {number} [timestampSeconds] — hint only; YouTube doesn't support
- *   arbitrary-timestamp thumbnails without storyboard APIs.
+ * @param {number} [timestampSeconds]
  * @returns {{ default: string, hq: string, mq: string, sd: string, maxres: string }}
  */
 export function buildThumbnailUrls(videoId, timestampSeconds = 0) {
-  const base = `https://img.youtube.com/vi/${videoId}`;
-  return {
-    default: `${base}/default.jpg`,
-    mq: `${base}/mqdefault.jpg`,
-    hq: `${base}/hqdefault.jpg`,
-    sd: `${base}/sddefault.jpg`,
-    maxres: `${base}/maxresdefault.jpg`,
-    // Note: YouTube's storyboard thumbnails are video-specific and require
-    // parsing the video page's player config — out of scope for this MVP.
-    timestampHint: timestampSeconds,
-  };
+  return platformThumbs(PLATFORM.YOUTUBE, videoId, timestampSeconds);
 }

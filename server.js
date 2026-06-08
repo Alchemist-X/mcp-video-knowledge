@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * mcp-video-knowledge — MCP stdio server
  *

@@ -90,6 +90,7 @@ Generate a polished study sheet from a topic or video IDs.
 - `format`: `"markdown"` (default) or `"html"`
 - HTML output is a **standalone, self-contained document** (inline CSS, dark theme, no CDN)
 - Includes: header with topic, TOC, synthesized script, section outline with timestamps, responsive thumbnail grid (clickable cards linking to the video at that timestamp), per-video keyword chips
+- The thumbnail grid **always renders at least one card per video** — when a transcript can't be fetched (offline, no captions), each video falls back to an "overview" card built from its ID, so the sheet never collapses to an empty grid
 
 Returns `{ format, topic, meta, sheet }` where `sheet` is the full document string.
 
@@ -150,10 +151,31 @@ npm install
 cp .env.example .env   # edit as needed
 ```
 
+### Run without cloning (`npx`)
+
+The package exposes a `bin` (`mcp-video-knowledge`), so the stdio server can be
+launched directly:
+
+```bash
+npx mcp-video-knowledge        # from the published package
+npx .                          # from a local checkout
+```
+
+This starts the MCP stdio server (the same entry point as `node server.js`).
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `npm start` | Launch the MCP stdio server (`node server.js`) |
+| `npm test` | Run the `node:test` unit suite (`node --test`) |
+| `npm run demo` | Run the offline demo pipeline (`node test/demo.js`) |
+| `npm run eval` | Run the self-eval harness (`node eval/eval.mjs`) |
+
 ## Demo (offline, no keys)
 
 ```bash
-node test/demo.js
+npm run demo        # or: node test/demo.js
 ```
 
 Runs the full offline pipeline on a bundled ML transcript:
@@ -165,6 +187,47 @@ Runs the full offline pipeline on a bundled ML transcript:
 - Markdown + HTML study sheet generation
 
 The HTML study sheet is written to `/tmp/study-sheet-demo.html`.
+
+## Tests
+
+```bash
+npm test            # or: node --test
+```
+
+Discovers `test/*.test.js` via Node's built-in test runner. The suite covers the
+offline pure-function paths: extractive summarization (non-trivial, not an echo),
+platform detection (YouTube id/URL + Bilibili BVid), study-sheet HTML escaping +
+structure (self-contained, no CDN), and empty/whitespace/garbage robustness.
+
+## Self-eval
+
+```bash
+npm run eval        # or: node eval/eval.mjs
+```
+
+`eval/eval.mjs` is a zero-dependency pass/fail harness (run from the repo root).
+It spawns `server.js` over stdio, exercises every tool, prints `PASS Cn …` /
+`FAIL Cn …` per criterion and a final `RESULT: X/Y passed`, and exits non-zero
+unless every criterion passes. Spawned servers and temp files are always cleaned
+up. See `eval/criteria.md` for the human-readable criteria.
+
+### Isolated / offline store
+
+The harness forces the offline extractive path and an isolated store by blanking
+all credential env vars, so it never touches the network or any external store:
+
+| Variable | Forced value in eval |
+|---|---|
+| `ANTHROPIC_API_KEY` | `""` (empty → extractive fallback) |
+| `YOUTUBE_API_KEY` | `""` (empty → no keyword search) |
+| `BILIBILI_COOKIE` | `""` (empty → public-CC best-effort only) |
+
+It also launches each server with `node --import eval/offline-preload.mjs
+server.js`, which disables outbound `fetch`, guaranteeing the offline path runs
+deterministically regardless of the test machine's connectivity. When transcripts
+cannot be fetched, the HTML study sheet still renders a thumbnail grid: each
+video gets a fallback "overview" card built from its ID (the platform thumbnail
+and deep-link are derivable offline, no network required).
 
 ## Add to Claude Code / Claude Desktop
 
@@ -223,8 +286,15 @@ src/
   compare.js             — Cross-video comparison (extractive + LLM)
   studysheet.js          — Markdown + self-contained HTML study sheet generator
 test/
+  unit.test.js           — node:test unit suite (summarize, platform-detect,
+                           study-sheet escaping, empty-input robustness)
   demo.js                — Offline demo harness (no keys or network)
   sample-transcript.txt  — Bundled ML transcript for offline testing
+eval/
+  eval.mjs               — Zero-dep pass/fail self-eval harness (stdio + pure fns)
+  criteria.md            — Human-readable criteria
+  offline-preload.mjs    — Eval-owned network-disabling preload (isolation)
+  fixtures/              — Eval input transcripts (ML / CJK / garbage / meeting)
 ```
 
 ## Limitations

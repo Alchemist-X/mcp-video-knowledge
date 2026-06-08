@@ -6,6 +6,58 @@
  * Offline — no CDN, no external resources. Inline CSS only.
  */
 
+import { PLATFORM, buildThumbnailUrls, buildVideoUrl } from './platform.js';
+
+// ─── Moment collection ─────────────────────────────────────────────────────
+
+/**
+ * Collect renderable thumbnail-grid moments for a single video.
+ *
+ * Prefers topical sections, then interval key moments. When neither is
+ * available (e.g. the transcript could not be fetched), it falls back to a
+ * single "video overview" moment derived purely from the video ID — the
+ * platform thumbnail and deep-link are computable offline with no network.
+ * This guarantees the study sheet always renders at least one card per video.
+ *
+ * @param {object} v  per-video record from learnTopic()
+ * @returns {Array<{videoTitle,platform,t,note,thumbnailUrl,videoUrl}>}
+ */
+function collectMoments(v) {
+  const platform = v.platform && v.platform !== 'unknown' ? v.platform : PLATFORM.YOUTUBE;
+  const videoTitle = v.title || v.id;
+
+  const fromSource = (source) =>
+    source.map((m) => ({
+      videoTitle,
+      platform,
+      t: m.startTime ?? m.t ?? 0,
+      note: m.label ?? m.note ?? '',
+      thumbnailUrl: m.thumbnailUrl ?? '',
+      videoUrl: m.videoUrl ?? '',
+    }));
+
+  if (Array.isArray(v.sections) && v.sections.length > 0) {
+    return fromSource(v.sections.slice(0, 6));
+  }
+  if (Array.isArray(v.keyMoments) && v.keyMoments.length > 0) {
+    return fromSource(v.keyMoments.slice(0, 6));
+  }
+
+  // Fallback: a single overview card from the video ID alone (offline-safe).
+  if (!v.id) return [];
+  const thumbs = buildThumbnailUrls(platform, v.id, 0);
+  return [{
+    videoTitle,
+    platform,
+    t: 0,
+    note: v.transcriptAvailable === false
+      ? 'Open video (transcript unavailable offline)'
+      : 'Watch from the start',
+    thumbnailUrl: thumbs.hq ?? thumbs.default ?? '',
+    videoUrl: buildVideoUrl(platform, v.id, 0),
+  }];
+}
+
 // ─── Timestamp formatting ─────────────────────────────────────────────────
 
 /**
@@ -73,16 +125,8 @@ export function buildMarkdownSheet(data, topic) {
     lines.push('');
   }
 
-  // Key moments
-  const allMoments = perVideo.flatMap((v) =>
-    (v.sections ?? v.keyMoments ?? []).slice(0, 5).map((m) => ({
-      videoTitle: v.title || v.id,
-      t: m.startTime ?? m.t,
-      note: m.label ?? m.note,
-      thumbnailUrl: m.thumbnailUrl,
-      videoUrl: m.videoUrl,
-    }))
-  );
+  // Key moments — collectMoments() guarantees at least one entry per video.
+  const allMoments = perVideo.flatMap(collectMoments);
 
   if (allMoments.length > 0) {
     lines.push('## Key Moments');
@@ -489,20 +533,10 @@ export function buildHtmlSheet(data, topic) {
   const { script, perVideo = [], meta = {} } = data;
   const date = new Date().toISOString().slice(0, 10);
 
-  // Collect all moments (sections preferred, fallback to keyMoments)
-  const allMoments = perVideo.flatMap((v) => {
-    const source = v.sections && v.sections.length > 0
-      ? v.sections.slice(0, 6)
-      : (v.keyMoments ?? []).slice(0, 6);
-    return source.map((m) => ({
-      videoTitle: v.title || v.id,
-      platform: v.platform || 'youtube',
-      t: m.startTime ?? m.t ?? 0,
-      note: m.label ?? m.note ?? '',
-      thumbnailUrl: m.thumbnailUrl ?? '',
-      videoUrl: m.videoUrl ?? '',
-    }));
-  });
+  // Collect all moments. collectMoments() guarantees at least one card per
+  // video (a video-overview card derived from the ID) even when transcripts
+  // were unavailable, so the thumbnail grid always renders offline.
+  const allMoments = perVideo.flatMap(collectMoments);
 
   // First video with topical sections for the outline
   const outlineVideo = perVideo.find((v) => v.sections && v.sections.length > 0);

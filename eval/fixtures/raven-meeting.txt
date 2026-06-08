@@ -1,0 +1,13 @@
+Welcome everyone to the quarterly product strategy meeting for the Raven analytics platform. Today we will align on the roadmap, review customer feedback, and decide on the next set of priorities for the engineering team.
+
+The biggest theme from customer interviews this quarter was dashboard performance. Several enterprise accounts reported that their dashboards take too long to render when they have more than fifty widgets on a single page. The engineering team has already prototyped a virtualized rendering approach that only draws widgets currently in the viewport. Early benchmarks show a four times improvement in initial load time.
+
+The second priority is the alerting system. Customers want configurable thresholds and the ability to route alerts to Slack, email, and PagerDuty. Right now alerts only support email, which limits adoption among on-call teams. We propose building a flexible notification pipeline that supports multiple destinations and custom routing rules based on severity.
+
+Third, we discussed data retention and storage costs. As customers ingest more events, our storage bill grows faster than revenue. The proposal is to introduce tiered retention, where recent data stays in fast hot storage and older data moves to cheaper cold storage automatically. This requires a background compaction job and a query layer that transparently reads from both tiers.
+
+On the topic of onboarding, new users frequently get stuck during the initial data source connection step. The team suggests an interactive setup wizard with prebuilt connectors for common databases like Postgres, MySQL, and Snowflake. Reducing time to first insight is critical for trial conversion.
+
+Finally, we reviewed the security audit findings. The auditors recommended enforcing single sign on for all enterprise tiers, rotating API keys every ninety days, and adding row level access controls so teams only see the data they are permitted to view. Security and compliance are increasingly important for closing large deals.
+
+To summarize the action items: ship virtualized dashboard rendering next sprint, design the multi destination alerting pipeline, prototype tiered storage retention, build the onboarding wizard, and implement the security audit recommendations. Let us reconvene in two weeks to review progress on these initiatives.

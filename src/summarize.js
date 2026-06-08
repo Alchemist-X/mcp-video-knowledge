@@ -37,6 +37,19 @@ const STOP_WORDS = new Set([
   'show','hear','play','run','move','live','believe','hold','bring','happen',
   'write','provide','sit','stand','lose','pay','meet','include','continue',
   'set','learn','change','lead','understand','watch','follow','stop','create',
+  // Common discourse fillers / quantifiers / intensifiers that are never
+  // meaningful topical keywords. Keeping these out of the top-keyword list
+  // keeps extraction focused on the document's actual subject matter.
+  'like','very','much','many','most','some','any','all','each','every',
+  'few','well','even','still','quite','rather','really','actually','simply',
+  'often','always','never','sometimes','usually','here','there','thing',
+  'things','stuff','way','ways','lot','lots','kind','sort','etc','one','two',
+  'three','first','second','third','next','last','other','others','another',
+  'same','own','both','either','neither','too','only','also','again','around',
+  'through','during','while','because','though','although','however',
+  'therefore','thus','hence','within','without','between','among','across',
+  'whether','while','being','let','using','used','doing','having','said',
+  'says','saying','example','examples','etc','via','per','versus','vs',
 ]);
 
 // ─── TF-IDF helpers ───────────────────────────────────────────────────────

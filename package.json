@@ -4,9 +4,21 @@
   "description": "MCP server that learns implicit knowledge from YouTube videos and returns synthesized scripts plus key timestamped frames",
   "type": "module",
   "main": "server.js",
+  "bin": {
+    "mcp-video-knowledge": "server.js"
+  },
+  "files": [
+    "server.js",
+    "src/",
+    "README.md",
+    "LICENSE",
+    ".env.example"
+  ],
   "scripts": {
     "start": "node server.js",
-    "test": "node test/demo.js"
+    "test": "node --test",
+    "demo": "node test/demo.js",
+    "eval": "node eval/eval.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1"
